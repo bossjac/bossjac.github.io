@@ -1,27 +1,30 @@
 body {
-    background-color: black;
-    color: white; /* Optional: Set text color to white for better visibility on black background */
-    font-family: Arial, sans-serif; /* Optional: Set font family */
-    padding: 20px; /* Optional: Add some padding for content */
+  background-color: #000;
+  text-align: center;
+  color: #fff;
+  padding-top: 15em;
 }
 
-.typewriter {
-  overflow: hidden;
-  border-right: .15em solid orange;
-  white-space: nowrap;
-  margin: 0 auto;
-  letter-spacing: .15em;
-  animation: typing 6s steps(60, end), blink-caret .5s step-end infinite;
+* {
+  color: #fff;
+  text-decoration: none;
 }
 
-/* Typing animation */
-@keyframes typing {
-  from { width: 0 }
-  to { width: 100% }
+.typewrite {
+  font-family: "Lucida Console", Courier, monospace;
+  font-weight: bold;
+  font-size: 21px;
 }
 
-/* Blinking cursor animation */
-@keyframes blink-caret {
-  from, to { border-color: transparent }
-  50% { border-color: orange; }
+.typewrite > .wrap {
+  color: #FFB733; /* Set the typing color to #FFB733 */
+}
+
+.blink {
+  animation: blink-caret 0.75s steps(1) infinite;
+}
+
+
+.typewrite > .wrap.ip {
+  color: #000; /* Color for the IP address */
 }
