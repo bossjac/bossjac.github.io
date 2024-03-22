@@ -1,0 +1,7 @@
+body {
+    background-color: black;
+    color: white; /* Optional: Set text color to white for better visibility on black background */
+    font-family: Arial, sans-serif; /* Optional: Set font family */
+    padding: 20px; /* Optional: Add some padding for content */
+}
+
