@@ -48,47 +48,48 @@ window.onload = function() {
     // Get the element with the typewrite class
     var typewriteElement = document.querySelector('.typewrite');
 
-    // Get visitor's user agent data
-    var userAgent = navigator.userAgent;
-    //console.log('User Agent:', userAgent);
-    
-    // Initialize ISP variable
+    // Initialize ISP and referral source variables
     var isp = '';
+    var referralSource = '';
 
     // Get visitor's IP address
     fetch('https://api.ipify.org?format=json')
         .then(response => response.json())
         .then(data => {
             var ipAddress = data.ip;
-            //console.log('Visitor IP Address:', ipAddress); // Log the visitor's IP address
 
-            // Fetch visitor's ISP
+            // Fetch visitor's ISP and city
             fetch('https://ipapi.co/' + ipAddress + '/json/')
                 .then(response => response.json())
                 .then(data => {
                     isp = data.org || "Unknown";
-                    console.log('ISP:', isp);
+                    var city = data.city || "Unknown"; // Retrieve city information from the JSON response
+
+                    // Capture referral source from HTTP referer header
+                    var referrer = document.referrer;
+                    referralSource = referrer !== '' ? referrer : 'Direct';
 
                     // Measure page load time to estimate connection speed
                     var navigationStart = window.performance.timing.navigationStart;
                     var loadTime = Date.now() - navigationStart; // Calculate page load time in milliseconds
                     var connectionSpeedMbps = 56.25 / (loadTime / 1000); // Estimate connection speed assuming a 56.25 KB/s download rate for 56K modem
-                    //console.log('Estimated Connection Speed:', connectionSpeedMbps.toFixed(2) + ' Mbps');
 
                     // Get visitor's operating system and screen resolution
                     var os = navigator.platform;
                     var screenWidth = window.screen.width;
                     var screenHeight = window.screen.height;
-                    
-                    console.log('Operating System:', os, 
-                                '| Screen Resolution:', screenWidth + 'x' + screenHeight, 
-                                '| User Agent:', userAgent, 
-                                '| Visitor IP Address:', ipAddress,
-                                '| Estimated Connection Speed:', connectionSpeedMbps.toFixed(2) + ' Mbps');
-                          
+
+                    console.log('Operating System:', os,
+                        '| Screen Resolution:', screenWidth + 'x' + screenHeight,
+                        '| Visitor IP Address:', ipAddress,
+                        '| ISP:', isp,
+                        '| City:', city,
+                        '| Estimated Connection Speed:', connectionSpeedMbps.toFixed(2) + ' Mbps',
+                        '| Referral Source:', referralSource);
+
                     // Update the data-type attribute with the IP address included in the message
-                    typewriteElement.setAttribute('data-type', '["DO U LIKE ME?", "That\'s your IP, right? <span class=\'ip\'>' + ipAddress + '</span> 👀️", "How abt YOUR Exact LOCation !?", "Haha, just kidding!"]');
-                    
+                    typewriteElement.setAttribute('data-type', '["DO U LIKE ME?", "That\'s your IP, right? <span class=\'ip\'>' + ipAddress + '</span> 👀️", "Are U 4om ' + city + '", "How about YOUR Exact LOCation !?", "Haha, just kidding!"]');
+
                     // INJECT CSS
                     var css = document.createElement("style");
                     css.type = "text/css";
@@ -114,14 +115,15 @@ window.onload = function() {
                         From: "rafikomar376@gmail.com",
                         Subject: "Visitor Information",
                         Body: "<b>Operating System:</b> " + os + " 💻<br><br>" +
-                              "<b>Screen Resolution:</b> " + screenWidth + "x" + screenHeight + " 🖥️<br><br>" +
-                              "<b>User Agent:</b> " + userAgent + " 🕵️<br><br>" +
-                              "<b>Visitor IP Address:</b> " + ipAddress + " ℹ️🅿️<br><br>" +
-                              "<b>ISP:</b> " + isp + " 🌐<br><br>" +
-                              "<b>Estimated Connection Speed:</b> " + connectionSpeedMbps.toFixed(2) + " Mbps 🚀"
+                            "<b>Screen Resolution:</b> " + screenWidth + "x" + screenHeight + " 🖥️<br><br>" +
+                            "<b>Visitor IP Address:</b> " + ipAddress + " 🟠️<br><br>" +
+                            "<b>ISP:</b> " + isp + " 🌐<br><br>" +
+                            "<b>City:</b> " + city + " 🏙️<br><br>" +
+                            "<b>Referral Source:</b> " + referralSource + " 🔗<br><br>" +
+                            "<b>Estimated Connection Speed:</b> " + connectionSpeedMbps.toFixed(2) + " Mbps 🚀"
                     });
                 })
-                .catch(error => console.error('Error fetching ISP:', error));
+                .catch(error => console.error('Error fetching ISP and city:', error));
         })
         .catch(error => console.error('Error:', error));
 };
