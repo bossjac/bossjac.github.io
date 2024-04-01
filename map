@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+
+        #trackButton {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            padding: 8px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #trackIcon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .distance-label {
+            font-size: 12px;
+            background-color: white;
+            padding: 2px 5px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            white-space: nowrap; /* Prevent text wrapping */
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="trackButton" onclick="zoomToCurrentLocation()">
+        <svg id="trackIcon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-compass-fill" viewBox="0 0 16 16">
+            <path d="M15.5 8.516a7.5 7.5 0 1 1-9.462-7.24A1 1 0 0 1 7 0h2a1 1 0 0 1 .962 1.276 7.5 7.5 0 0 1 5.538 7.24m-3.61-3.905L6.94 7.439 4.11 12.39l4.95-2.828 2.828-4.95z"/>
+        </svg>
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        // Initialize the map
+        var map = L.map('map').setView([0, 0], 13);
+        var pharmacyCount = 0; // Counter for pharmacy count
+
+        // Add CartoDB Positron basemap
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 18,
+        }).addTo(map);
+
+        // Function to zoom to user's current location
+        function zoomToCurrentLocation() {
+            console.log("Zooming to user's current location...");
+            navigator.geolocation.getCurrentPosition(function (position) {
+                pharmacyCount = 0; // Reset pharmacy count
+                updateMap(position.coords.latitude, position.coords.longitude, 16);
+                fetchPOIData(position.coords.latitude, position.coords.longitude);
+            }, function (error) {
+                console.error('Error getting user location:', error);
+            });
+        }
+
+        // Function to update map with given latitude, longitude, and zoom level
+        function updateMap(lat, lng, zoom) {
+            map.setView([lat, lng], zoom);
+            L.marker([lat, lng]).addTo(map).bindPopup('Your Location 📍').openPopup();
+        }
+
+        // Function to fetch nearby pharmacies and display markers
+        function fetchPOIData(lat, lng) {
+            console.log("Fetching nearby pharmacies...");
+            var query = `[out:json];node(around:50000, ${lat}, ${lng})[amenity=pharmacy];out;`;
+            var url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    processPOIData(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching POI data:', error);
+                });
+        }
+
+        // Function to process retrieved POI data and add markers to the map
+        function processPOIData(data) {
+            data.elements.forEach(element => {
+                var lat = element.lat;
+                var lon = element.lon;
+                var pharmacyLocation = L.latLng(lat, lon);
+                
+                // Create a custom icon for the pharmacy marker
+                var pharmacyIcon = L.icon({
+                    iconUrl: 'http://openpoimap.org/mapicons/medicine.png',
+                    iconSize: [27, 27], // Size of the icon
+                    iconAnchor: [16, 32], // Point of the icon which will correspond to marker's location
+                    popupAnchor: [0, -32] // Point from which the popup should open relative to the iconAnchor
+                });
+                
+                // Add the marker to the map using the custom icon
+                var pharmacyMarker = L.marker([lat, lon], { icon: pharmacyIcon }).addTo(map).bindPopup('Pharmacy 🏥');
+
+                // Find the closest pharmacy for each pharmacy
+                var closestDistance = Infinity;
+                var closestPharmacy = null;
+                data.elements.forEach(otherElement => {
+                    if (element.id !== otherElement.id) {
+                        var otherLat = otherElement.lat;
+                        var otherLon = otherElement.lon;
+                        var otherPharmacyLocation = L.latLng(otherLat, otherLon);
+                        var distance = pharmacyLocation.distanceTo(otherPharmacyLocation);
+                        if (distance < closestDistance) {
+                            closestDistance = distance;
+                            closestPharmacy = otherPharmacyLocation;
+                        }
+                    }
+                });
+
+                // Draw a line between the current pharmacy and its closest pharmacy
+                if (closestPharmacy) {
+                    var polyline = L.polyline([pharmacyLocation, closestPharmacy], { color: 'black' }).addTo(map);
+                    var midPoint = L.latLng((pharmacyLocation.lat + closestPharmacy.lat) / 2, (pharmacyLocation.lng + closestPharmacy.lng) / 2);
+                    var distanceText = closestDistance.toFixed(2);
+                    var distanceLabel = L.marker(midPoint, {
+                        icon: L.divIcon({ 
+                            className: 'distance-label',
+                            html: distanceText,
+                            iconSize: [distanceText.length * 8, 20] // Adjust width based on the length of the text
+                        })
+                    }).addTo(map);
+                }
+            });
+        }
+
+        // Fetch user's location and update the map
+        console.log("Fetching user's location...");
+        navigator.geolocation.getCurrentPosition(function (position) {
+            console.log("User location fetched.");
+            updateMap(position.coords.latitude, position.coords.longitude, 13);
+            fetchPOIData(position.coords.latitude, position.coords.longitude);
+        }, function (error) {
+            console.error('Error getting user location:', error);
+        });
+    </script>
+</body>
+</html>
