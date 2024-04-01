@@ -72,6 +72,7 @@
                 pharmacyCount = 0; // Reset pharmacy count
                 updateMap(position.coords.latitude, position.coords.longitude, 16);
                 fetchPOIData(position.coords.latitude, position.coords.longitude);
+                fetchBuildingData(position.coords.latitude, position.coords.longitude);
             }, function (error) {
                 console.error('Error getting user location:', error);
             });
@@ -150,12 +151,52 @@
             });
         }
 
+        // Function to fetch nearby buildings and display them on the map
+        function fetchBuildingData(lat, lng) {
+            console.log("Fetching nearby buildings...");
+            var query = `[out:json];(way(around:50000, ${lat}, ${lng})[building];relation(around:50000, ${lat}, ${lng})[building];);out body;`;
+            var url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Building count:", data.elements.length);
+                    processBuildingData(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching building data:', error);
+                });
+        }
+
+        // Function to process retrieved building data and add polygons to the map
+        function processBuildingData(data) {
+            data.elements.forEach(element => {
+                if (element.type === 'way') {
+                    var latlngs = [];
+                    element.nodes.forEach(node => {
+                        var nodeData = data.elements.find(el => el.type === 'node' && el.id === node);
+                        if (nodeData) {
+                            latlngs.push([nodeData.lat, nodeData.lon]);
+                        }
+                    });
+
+                    // Draw polygon on the map with the desired color
+                    if (latlngs.length > 0) {
+                        L.polygon(latlngs, { color: '#FFD9B3', fillColor: '#FFD9B3', fillOpacity: 0.5 }).addTo(map);
+                    }
+                } else if (element.type === 'relation') {
+                    // Handle relation data if needed
+                }
+            });
+        }
+
         // Fetch user's location and update the map
         console.log("Fetching user's location...");
         navigator.geolocation.getCurrentPosition(function (position) {
             console.log("User location fetched.");
             updateMap(position.coords.latitude, position.coords.longitude, 13);
             fetchPOIData(position.coords.latitude, position.coords.longitude);
+            fetchBuildingData(position.coords.latitude, position.coords.longitude);
         }, function (error) {
             console.error('Error getting user location:', error);
         });
