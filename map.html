@@ -65,6 +65,11 @@
             maxZoom: 18,
         }).addTo(map);
 
+        // Add CartoDB Dark Matter basemap
+        //L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            //maxZoom: 18,
+        //}).addTo(map);
+
         // Function to zoom to user's current location
         function zoomToCurrentLocation() {
             console.log("Zooming to user's current location...");
@@ -72,22 +77,28 @@
                 pharmacyCount = 0; // Reset pharmacy count
                 updateMap(position.coords.latitude, position.coords.longitude, 16);
                 fetchPOIData(position.coords.latitude, position.coords.longitude);
-                fetchBuildingData(position.coords.latitude, position.coords.longitude);
+                fetchRoads(position.coords.latitude, position.coords.longitude); // Fetch nearby roads
             }, function (error) {
                 console.error('Error getting user location:', error);
+                alert('Unable to retrieve your location. Please make sure location services are enabled and try again.');
             });
         }
 
         // Function to update map with given latitude, longitude, and zoom level
         function updateMap(lat, lng, zoom) {
             map.setView([lat, lng], zoom);
-            L.marker([lat, lng]).addTo(map).bindPopup('Your Location 📍').openPopup();
+            var locationIcon = L.divIcon({
+                html: '<img src="https://duckduckgo.com/js/mapbox/ddgimages/crosshair.svg" width="36" height="36">',
+                iconSize: [0, 0],
+                iconAnchor: [8, 8],
+            });
+            L.marker([lat, lng], { icon: locationIcon }).addTo(map);
         }
 
         // Function to fetch nearby pharmacies and display markers
         function fetchPOIData(lat, lng) {
             console.log("Fetching nearby pharmacies...");
-            var query = `[out:json];node(around:50000, ${lat}, ${lng})[amenity=pharmacy];out;`;
+            var query = `[out:json];node(around:3000, ${lat}, ${lng})[amenity=pharmacy];out;`;
             var url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
 
             fetch(url)
@@ -111,13 +122,13 @@
                 // Create a custom icon for the pharmacy marker
                 var pharmacyIcon = L.icon({
                     iconUrl: 'http://openpoimap.org/mapicons/medicine.png',
-                    iconSize: [27, 27], // Size of the icon
-                    iconAnchor: [16, 32], // Point of the icon which will correspond to marker's location
-                    popupAnchor: [0, -32] // Point from which the popup should open relative to the iconAnchor
+                    iconSize: [27, 27],
+                    iconAnchor: [16, 32],
+                    popupAnchor: [0, -32]
                 });
                 
                 // Add the marker to the map using the custom icon
-                var pharmacyMarker = L.marker([lat, lon], { icon: pharmacyIcon }).addTo(map).bindPopup('Pharmacy 🏥');
+                var pharmacyMarker = L.marker([lat, lon], { icon: pharmacyIcon }).addTo(map);
 
                 // Find the closest pharmacy for each pharmacy
                 var closestDistance = Infinity;
@@ -137,7 +148,7 @@
 
                 // Draw a line between the current pharmacy and its closest pharmacy
                 if (closestPharmacy) {
-                    var polyline = L.polyline([pharmacyLocation, closestPharmacy], { color: 'black' }).addTo(map);
+                    var polyline = L.polyline([pharmacyLocation, closestPharmacy], { color: '#5c869a' }).addTo(map);
                     var midPoint = L.latLng((pharmacyLocation.lat + closestPharmacy.lat) / 2, (pharmacyLocation.lng + closestPharmacy.lng) / 2);
                     var distanceText = closestDistance.toFixed(2);
                     var distanceLabel = L.marker(midPoint, {
@@ -151,43 +162,62 @@
             });
         }
 
-        // Function to fetch nearby buildings and display them on the map
-        function fetchBuildingData(lat, lng) {
-            console.log("Fetching nearby buildings...");
-            var query = `[out:json];(way(around:50000, ${lat}, ${lng})[building];relation(around:50000, ${lat}, ${lng})[building];);out body;`;
+        // Function to fetch nearby roads
+        function fetchRoads(lat, lng) {
+            console.log("Fetching nearby roads...");
+            var query = `[out:json];way(around:50, ${lat}, ${lng})[highway];out;`;
             var url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
 
             fetch(url)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
                 .then(data => {
-                    console.log("Building count:", data.elements.length);
-                    processBuildingData(data);
+                    console.log("Roads count:", data.elements.length);
+                    processRoadData(data);
                 })
                 .catch(error => {
-                    console.error('Error fetching building data:', error);
+                    console.error('Error fetching road data:', error);
                 });
         }
 
-        // Function to process retrieved building data and add polygons to the map
-        function processBuildingData(data) {
+        // Function to process road data and draw roads on the map
+        function processRoadData(data) {
             data.elements.forEach(element => {
-                if (element.type === 'way') {
-                    var latlngs = [];
-                    element.nodes.forEach(node => {
-                        var nodeData = data.elements.find(el => el.type === 'node' && el.id === node);
-                        if (nodeData) {
-                            latlngs.push([nodeData.lat, nodeData.lon]);
-                        }
-                    });
-
-                    // Draw polygon on the map with the desired color
-                    if (latlngs.length > 0) {
-                        L.polygon(latlngs, { color: '#FFD9B3', fillColor: '#FFD9B3', fillOpacity: 0.5 }).addTo(map);
-                    }
-                } else if (element.type === 'relation') {
-                    // Handle relation data if needed
+                if (element.type === "way") {
+                    var wayId = element.id;
+                    fetch(`https://www.openstreetmap.org/api/0.6/way/${wayId}/full`)
+                        .then(response => response.text())
+                        .then(xmlData => {
+                            var parser = new DOMParser();
+                            var xmlDoc = parser.parseFromString(xmlData, "text/xml");
+                            var nodes = xmlDoc.getElementsByTagName("nd");
+                            var nodeRefs = Array.from(nodes).map(nd => nd.getAttribute("ref"));
+                            var roadCoordinates = [];
+                            nodeRefs.forEach(ref => {
+                                var node = xmlDoc.querySelector(`node[id="${ref}"]`);
+                                if (node) {
+                                    var lat = parseFloat(node.getAttribute("lat"));
+                                    var lon = parseFloat(node.getAttribute("lon"));
+                                    roadCoordinates.push([lat, lon]);
+                                }
+                            });
+                            drawRoad(roadCoordinates);
+                        })
+                        .catch(error => {
+                            console.error('Error fetching road details:', error);
+                        });
                 }
             });
+        }
+
+        // Function to draw roads on the map
+        function drawRoad(coordinates) {
+            //var polyline = L.polyline(coordinates, { color: 'rgba(255, 217, 179, 0.5)' }).addTo(map);
+            var polyline = L.polyline(coordinates, { color: 'rgba(153, 231, 255, 0.5)' }).addTo(map);
         }
 
         // Fetch user's location and update the map
@@ -196,9 +226,10 @@
             console.log("User location fetched.");
             updateMap(position.coords.latitude, position.coords.longitude, 13);
             fetchPOIData(position.coords.latitude, position.coords.longitude);
-            fetchBuildingData(position.coords.latitude, position.coords.longitude);
+            fetchRoads(position.coords.latitude, position.coords.longitude); // Fetch nearby roads
         }, function (error) {
             console.error('Error getting user location:', error);
+            alert('Unable to retrieve your location. Please make sure location services are enabled and try again.');
         });
     </script>
 </body>
