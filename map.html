@@ -165,7 +165,7 @@
 
         function fetchRoads(lat, lng) {
             console.log("Fetching nearby roads...");
-            var query = `[out:json];way(around:1000000, ${lat}, ${lng})[highway];out;`;
+            var query = `[out:json];way(around:100000, ${lat}, ${lng})[highway];out;`;
             var url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
 
             fetch(url)
