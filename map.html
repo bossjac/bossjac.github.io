@@ -94,7 +94,7 @@
         // Function to fetch nearby pharmacies and display markers
         function fetchPOIData(lat, lng) {
             console.log("Fetching nearby pharmacies...");
-            var query = `[out:json];node(around:3000, ${lat}, ${lng})[amenity=pharmacy];out;`;
+            var query = `[out:json];node(around:50000, ${lat}, ${lng})[amenity=pharmacy];out;`;
             var url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
 
             fetch(url)
@@ -165,7 +165,7 @@
 
         function fetchRoads(lat, lng) {
             console.log("Fetching nearby roads...");
-            var query = `[out:json];way(around:1000, ${lat}, ${lng})[highway];out;`;
+            var query = `[out:json];way(around:1000000, ${lat}, ${lng})[highway];out;`;
             var url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
 
             fetch(url)
