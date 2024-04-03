@@ -61,7 +61,7 @@
         var roadNodes = []; // Store road nodes
         var pharmacies = []; // Array to store pharmacy coordinates
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             maxZoom: 18,
         }).addTo(map);
 
@@ -94,7 +94,7 @@
         // Function to fetch nearby pharmacies and display markers
         function fetchPOIData(lat, lng) {
             console.log("Fetching nearby pharmacies...");
-            var query = `[out:json];node(around:50000, ${lat}, ${lng})[amenity=pharmacy];out;`;
+            var query = `[out:json];node(around:5000, ${lat}, ${lng})[amenity=pharmacy];out;`;
             var url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
 
             fetch(url)
@@ -124,8 +124,9 @@
                     popupAnchor: [0, -32]
                 });
 
-                // Add the marker to the map using the custom icon
+                // Add the marker to the map using the custom icon and bind a popup with the pharmacy's name
                 var pharmacyMarker = L.marker([lat, lon], { icon: pharmacyIcon }).addTo(map);
+                pharmacyMarker.bindPopup(element.tags.name || "Unnamed Pharmacy");
 
                 // Find the closest pharmacy for each pharmacy
                 var closestDistance = Infinity;
@@ -165,7 +166,7 @@
 
         function fetchRoads(lat, lng) {
             console.log("Fetching nearby roads...");
-            var query = `[out:json];way(around:5000, ${lat}, ${lng})[highway];out;`;
+            var query = `[out:json];way(around:500, ${lat}, ${lng})[highway];out;`;
             var url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
 
             fetch(url)
@@ -222,7 +223,7 @@
         // Function to fetch nearby buildings
         function fetchBuildings(lat, lng) {
             console.log("Fetching nearby buildings...");
-            var query = `[out:json];way(around:1000, ${lat}, ${lng})[building];out;`;
+            var query = `[out:json];way(around:100, ${lat}, ${lng})[building];out;`;
             var url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
 
             fetch(url)
