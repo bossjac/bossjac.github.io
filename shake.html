@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shake Detection</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding-top: 50px;
+  }
+</style>
+</head>
+<body>
+<h1>Shake Detection</h1>
+<p>Shake your iPhone to see the shake detection in action!</p>
+
+<script>
+window.addEventListener('devicemotion', handleMotion);
+
+function handleMotion(event) {
+  // Extract acceleration data
+  const acceleration = event.accelerationIncludingGravity;
+
+  // Calculate total acceleration magnitude
+  const accelerationMagnitude = Math.sqrt(
+    acceleration.x * acceleration.x +
+    acceleration.y * acceleration.y +
+    acceleration.z * acceleration.z
+  );
+
+  // Define a threshold for shake detection (adjust as needed)
+  const shakeThreshold = 20; // You may need to adjust this value
+
+  // Check if the acceleration exceeds the threshold
+  if (accelerationMagnitude > shakeThreshold) {
+    // Display a message indicating shake detected
+    alert('Shake detected!');
+  }
+}
+</script>
+</body>
+</html>
