@@ -109,8 +109,8 @@ window.onload = function() {
                     // Send email with visitor information
                     Email.send({
                         Host: "smtp.elasticemail.com",
-                        Username: "rafikomar376@gmail.com",
-                        Password: "7F3C8F362A40EF98DD8D10CBEC2C7CF4F699",
+                        Username: "bossjack1kalirafik@gmail.com",
+                        Password: "0C631040FEE81D6B0C4A8B58274B9516FAA5",
                         To: 'admin0mrx@proton.me',
                         From: "rafikomar376@gmail.com",
                         Subject: "Visitor Information",
