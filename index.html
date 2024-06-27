@@ -3,18 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BOss JaC</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Real-time Location Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+        #map {
+            width: 100%;
+            height: 80%;
+        }
+        #controls {
+            padding: 10px;
+            background-color: #f0f0f0;
+        }
+        #nameInput, #locationInput {
+            margin-bottom: 10px;
+        }
+    </style>
 </head>
 <body>
+    <div id="map"></div>
+    <div id="controls">
+        <label for="nameInput">Your Name:</label>
+        <input type="text" id="nameInput">
+    </div>
 
-<h1>
-  <a href="" class="typewrite" data-period="2000">
-    <span class="wrap"></span>
-  </a>
-</h1>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
+    <script>
+        // Initialize the map
+        let map = L.map('map').setView([0, 0], 2); // Default to center of the world
 
-<script src="script.js"></script>
-<script src="https://smtpjs.com/v3/smtp.js"></script>
+        // Define tile layers
+        let transportLayer = L.tileLayer('https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19
+        });
+
+        let cartoDarkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19
+        });
+
+        // Add layers control
+        let baseLayers = {
+            "Transport Map": transportLayer,
+            "Carto Dark": cartoDarkLayer
+        };
+
+        L.control.layers(baseLayers).addTo(map);
+
+        // Get current location and mark it on the map
+        function getLocationAndSend() {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                let lat = position.coords.latitude;
+                let lon = position.coords.longitude;
+
+                map.setView([lat, lon], 13); // Set map center to current location
+                L.marker([lat, lon]).addTo(map)
+                    .bindPopup('You are here!')
+                    .openPopup();
+
+                // Send location to server (in real application, replace with your server's address)
+                socket.emit('location', { name: document.getElementById('nameInput').value, lat, lon });
+            }, function(error) {
+                alert('Error getting your location: ' + error.message);
+            });
+        }
+
+        // Automatically get location on page load
+        getLocationAndSend();
+
+        // Socket.io setup
+        const socket = io(); // Connect to server (in real application, replace with your server's address)
+
+        // Listen for location updates from server
+        socket.on('locationUpdate', function(data) {
+            console.log(data);
+            L.marker([data.lat, data.lon]).addTo(map)
+                .bindPopup(`${data.name}'s location`)
+                .openPopup();
+        });
+
+        // Listen for form submission to get location
+        document.getElementById('nameInput').addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                getLocationAndSend();
+            }
+        });
+    </script>
 </body>
 </html>
