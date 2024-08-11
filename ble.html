@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nearby BLE Devices</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+        #device-list {
+            margin-top: 20px;
+        }
+        .device {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <h1>Nearby BLE Devices</h1>
+    <button id="scan-button">Scan for BLE Devices</button>
+    <div id="device-list"></div>
+    
+    <script>
+        document.getElementById('scan-button').addEventListener('click', () => {
+            navigator.bluetooth.requestDevice({
+                acceptAllDevices: true,
+                optionalServices: []  // You can specify services here if needed
+            })
+            .then(device => {
+                displayDevice(device);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+
+        function displayDevice(device) {
+            const deviceList = document.getElementById('device-list');
+            const deviceDiv = document.createElement('div');
+            deviceDiv.className = 'device';
+            deviceDiv.textContent = `Name: ${device.name || 'Unnamed'}, ID: ${device.id}`;
+            deviceList.appendChild(deviceDiv);
+        }
+    </script>
+</body>
+</html>
